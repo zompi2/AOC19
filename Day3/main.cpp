@@ -28,18 +28,19 @@ struct Move
 {
     EDir dir;
     Point begin, end;
+    int length;
 
     Move(const Point& inBeginPoint, const std::string& inStr)
     {
         begin = inBeginPoint;
         end = inBeginPoint;
-        const int value = std::stoi(inStr.substr(1, inStr.length()-1));
+        length = std::stoi(inStr.substr(1, inStr.length()-1));
         switch (inStr[0])
         {
-            case 'U': end.y += value; dir = EDir::VERTICAL; break;
-            case 'D': end.y -= value; dir = EDir::VERTICAL; break;
-            case 'R': end.x += value; dir = EDir::HORIZONTAL; break;
-            case 'L': end.x -= value; dir = EDir::HORIZONTAL; break; 
+            case 'U': end.y += length; dir = EDir::VERTICAL; break;
+            case 'D': end.y -= length; dir = EDir::VERTICAL; break;
+            case 'R': end.x += length; dir = EDir::HORIZONTAL; break;
+            case 'L': end.x -= length; dir = EDir::HORIZONTAL; break; 
         }
     }
 };
@@ -73,6 +74,22 @@ void SetShortestIntersection(int newLen)
         if (newLen < result)
         {
             result = newLen;
+        }
+    }
+}
+
+static int result2 = -1;
+void SetShortestPath(int newLen)
+{
+    if (result2 == -1)
+    {
+        result2 = newLen;
+    }
+    else
+    {
+        if (newLen < result2)
+        {
+            result2 = newLen;
         }
     }
 }
@@ -115,8 +132,10 @@ int main()
         currentPoint = wire2Moves.back().end;
     }
 
+    int wire2Len = 0;
     for (const Move& move2 : wire2Moves)
     {
+        int wire1Len = 0;
         for (const Move& move1 : wire1Moves)
         {
             if (move1.dir != move2.dir)
@@ -127,8 +146,19 @@ int main()
                     {
                         if (IsBetween(move2.begin.y, move1.begin.y, move1.end.y))
                         {
-                            std::cout << "INTERSECT! " << move1.begin.x << " " << move2.begin.y << '\n';
-                            SetShortestIntersection(CalcManhattanDistanceToZero(move1.begin.x, move2.begin.y));
+                            int X = move1.begin.x;
+                            int Y = move2.begin.y;
+
+                            std::cout << "INTERSECT! " << X << " " << Y << '\n';
+                            std::cout << "calculating route\n";
+
+                            int LastLen1 = std::abs(Y - move1.begin.y); 
+                            int LastLen2 = std::abs(X - move2.begin.x); 
+
+                            std::cout << "Len1: " << wire1Len + LastLen1 << " Len2: " << wire2Len + LastLen2<< '\n';
+
+                            SetShortestIntersection(CalcManhattanDistanceToZero(X, Y));
+                            SetShortestPath(wire1Len + LastLen1 + wire2Len + LastLen2);
                         }
                     }
                 }
@@ -138,16 +168,31 @@ int main()
                     {
                         if (IsBetween(move1.begin.y, move2.begin.y, move2.end.y))
                         {
-                            std::cout << "INTERSECT! " << move2.begin.x << " " << move1.begin.y << '\n';
-                            SetShortestIntersection(CalcManhattanDistanceToZero(move2.begin.x, move1.begin.y));
+                            int X = move2.begin.x;
+                            int Y = move1.begin.y;
+
+                            std::cout << "INTERSECT! " << X << " " << Y << '\n';
+
+                            std::cout << "calculating route\n";
+
+                            int LastLen1 = std::abs(X - move1.begin.x); 
+                            int LastLen2 = std::abs(Y - move2.begin.y); 
+
+                            std::cout << "Len1: " << wire1Len + LastLen1 << " Len2: " << wire2Len + LastLen2<< '\n';
+
+                            SetShortestIntersection(CalcManhattanDistanceToZero(X, Y));
+                            SetShortestPath(wire1Len + LastLen1 + wire2Len + LastLen2);
                         }
                     }
                 }
             }
+            wire1Len += move1.length;
         }
+        wire2Len += move2.length;
     }
 
     std::cout << "Result: " << result << '\n';
+    std::cout << "Result2: " << result2 << '\n';
 
     return 0;
 }
