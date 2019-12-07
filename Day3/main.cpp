@@ -24,13 +24,13 @@ struct Point
     {}
 };
 
-struct Move
+struct Wire
 {
     EDir dir;
     Point begin, end;
     int length;
 
-    Move(const Point& inBeginPoint, const std::string& inStr)
+    Wire(const Point& inBeginPoint, const std::string& inStr)
     {
         begin = inBeginPoint;
         end = inBeginPoint;
@@ -103,92 +103,81 @@ int main()
 {
     std::ifstream infile("input.txt");
 
-    std::string wire1;
-    std::string wire2;
+    std::string wire1Data;
+    std::string wire2Data;
 
-    infile >> wire1;
-    infile >> wire2;
+    infile >> wire1Data;
+    infile >> wire2Data;
 
-    std::vector<std::string> wire1Vec = Split(wire1, ',');
-    std::vector<std::string> wire2Vec = Split(wire2, ',');
+    std::vector<std::string> wire1Steps = Split(wire1Data, ',');
+    std::vector<std::string> wire2Steps = Split(wire2Data, ',');
 
-    std::vector<Move> wire1Moves;
-    wire1Moves.reserve(wire1Vec.size());
+    std::vector<Wire> wire1;
+    wire1.reserve(wire1Steps.size());
 
-    std::vector<Move> wire2Moves;
-    wire2Moves.reserve(wire2Vec.size());
+    std::vector<Wire> wire2;
+    wire2.reserve(wire2Steps.size());
 
     Point currentPoint = Point(0,0);
-    for (const std::string& element : wire1Vec)
+    for (const std::string& step : wire1Steps)
     {
-        wire1Moves.push_back(Move(currentPoint, element));
-        currentPoint = wire1Moves.back().end;
+        wire1.push_back(Wire(currentPoint, step));
+        currentPoint = wire1.back().end;
     }
 
     currentPoint = Point(0,0);
-    for (const std::string& element : wire2Vec)
+    for (const std::string& step : wire2Steps)
     {
-        wire2Moves.push_back(Move(currentPoint, element));
-        currentPoint = wire2Moves.back().end;
+        wire2.push_back(Wire(currentPoint, step));
+        currentPoint = wire2.back().end;
     }
 
     int wire2Len = 0;
-    for (const Move& move2 : wire2Moves)
+    for (const Wire& wire2Element : wire2)
     {
         int wire1Len = 0;
-        for (const Move& move1 : wire1Moves)
+        for (const Wire& wire1Element : wire1)
         {
-            if (move1.dir != move2.dir)
+            if (wire1Element.dir != wire2Element.dir)
             {
-                if (move1.dir == EDir::VERTICAL)
+                if (wire1Element.dir == EDir::VERTICAL)
                 {
-                    if (IsBetween(move1.begin.x, move2.begin.x, move2.end.x))
+                    if (IsBetween(wire1Element.begin.x, wire2Element.begin.x, wire2Element.end.x))
                     {
-                        if (IsBetween(move2.begin.y, move1.begin.y, move1.end.y))
+                        if (IsBetween(wire2Element.begin.y, wire1Element.begin.y, wire1Element.end.y))
                         {
-                            int X = move1.begin.x;
-                            int Y = move2.begin.y;
+                            const int X = wire1Element.begin.x;
+                            const int Y = wire2Element.begin.y;
 
-                            std::cout << "INTERSECT! " << X << " " << Y << '\n';
-                            std::cout << "calculating route\n";
-
-                            int LastLen1 = std::abs(Y - move1.begin.y); 
-                            int LastLen2 = std::abs(X - move2.begin.x); 
-
-                            std::cout << "Len1: " << wire1Len + LastLen1 << " Len2: " << wire2Len + LastLen2<< '\n';
+                            const  int LastLen1 = std::abs(Y - wire1Element.begin.y); 
+                            const int LastLen2 = std::abs(X - wire2Element.begin.x); 
 
                             SetShortestIntersection(CalcManhattanDistanceToZero(X, Y));
                             SetShortestPath(wire1Len + LastLen1 + wire2Len + LastLen2);
                         }
                     }
                 }
-                else if (move1.dir == EDir::HORIZONTAL)
+                else if (wire1Element.dir == EDir::HORIZONTAL)
                 {
-                    if (IsBetween(move2.begin.x, move1.begin.x, move1.end.x))
+                    if (IsBetween(wire2Element.begin.x, wire1Element.begin.x, wire1Element.end.x))
                     {
-                        if (IsBetween(move1.begin.y, move2.begin.y, move2.end.y))
+                        if (IsBetween(wire1Element.begin.y, wire2Element.begin.y, wire2Element.end.y))
                         {
-                            int X = move2.begin.x;
-                            int Y = move1.begin.y;
+                            const int X = wire2Element.begin.x;
+                            const int Y = wire1Element.begin.y;
 
-                            std::cout << "INTERSECT! " << X << " " << Y << '\n';
-
-                            std::cout << "calculating route\n";
-
-                            int LastLen1 = std::abs(X - move1.begin.x); 
-                            int LastLen2 = std::abs(Y - move2.begin.y); 
-
-                            std::cout << "Len1: " << wire1Len + LastLen1 << " Len2: " << wire2Len + LastLen2<< '\n';
-
+                            const int LastLen1 = std::abs(X - wire1Element.begin.x); 
+                            const int LastLen2 = std::abs(Y - wire2Element.begin.y); 
+                            
                             SetShortestIntersection(CalcManhattanDistanceToZero(X, Y));
                             SetShortestPath(wire1Len + LastLen1 + wire2Len + LastLen2);
                         }
                     }
                 }
             }
-            wire1Len += move1.length;
+            wire1Len += wire1Element.length;
         }
-        wire2Len += move2.length;
+        wire2Len += wire2Element.length;
     }
 
     std::cout << "Result: " << result << '\n';
