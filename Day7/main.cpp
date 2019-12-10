@@ -11,20 +11,30 @@
 #include <functional>
 #include <array>
 
-int RunIntCode(std::vector<int> data, int phase, int signal)
+class Amp
 {
-   bool bFinished = false;
+public:   
+   std::vector<int> data;
+   int phase;
+   bool phaseSet = false;
    int idx = 0;
-   bool phasePassed = false;
+};
 
-   while (bFinished == false)
+// returns true if will still continue it's job.
+bool RunIntCode(std::shared_ptr<Amp>& amp, int& signal)
+{
+   int& idx = amp->idx;
+   std::vector<int>& data = amp->data;
+   int& phase = amp->phase;
+   bool& phaseSet = amp->phaseSet;
+
+   while (true)
    {
       const int OPCode = data[idx] % 100;
 
       if (OPCode == 99)
       {
-         bFinished = true;
-         break;
+         return false;
       }
 
       int immediateMode = data[idx] / 100;
@@ -51,9 +61,9 @@ int RunIntCode(std::vector<int> data, int phase, int signal)
       }
       else if (OPCode == 3)
       {
-         if (phasePassed == false)
+         if (phaseSet == false)
          {
-            phasePassed = true;
+            phaseSet = true;
             data[data[idx+1]] = phase;
          }
          else
@@ -65,8 +75,9 @@ int RunIntCode(std::vector<int> data, int phase, int signal)
       }
       else if (OPCode == 4)
       {
-         const int val = C == 0 ? data[data[idx+1]] : data[idx+1];
-         return val;
+         signal = C == 0 ? data[data[idx+1]] : data[idx+1];
+         idx += 2;
+         return true;
       }
       else if (OPCode == 5 || OPCode == 6)
       {
@@ -99,16 +110,37 @@ int RunIntCode(std::vector<int> data, int phase, int signal)
          idx += 4;
       }
    } 
+
+   return true;
 }
 
 const int phaseNums = 5;
 
-int GetResultFromPhases(std::vector<int> data, const std::array<int, phaseNums>& inPhases)
+int GetResultFromPhases(std::vector<int> data, int* inPhases)
 {
-   int previousSignal = 0;
-   for (int i=0; i<5; i++)
+   std::vector<std::shared_ptr<Amp>> Amps;
+   for (int i=0; i<phaseNums; i++)
    {
-      previousSignal = RunIntCode(data, inPhases[i], previousSignal);
+      std::shared_ptr<Amp> tmpAmp(new Amp());
+      tmpAmp->data = data;
+      tmpAmp->phase = inPhases[i];
+      Amps.push_back(tmpAmp);
+   }
+
+   int previousSignal = 0;
+   int i = 0;
+
+   while (true)
+   {
+      if (RunIntCode(Amps[i], previousSignal) == false)
+      {
+         break;
+      }
+      i++;
+      if (i == phaseNums)
+      {
+         i = 0;
+      }
    }
    return previousSignal;
 }
@@ -124,48 +156,52 @@ int main()
       data.push_back(std::stoi(value));
    }
 
-   std::array<int, phaseNums> phases {0,1,2,3,4};
-   std::array<int, phaseNums> originPhases = phases;
+   int phases[5] = {5,5,5,5,5};
 
-   int swap = 0;
-   int originSwap = 0;
+   bool bIsRunning = true;
    int maxResult = 0;
-
-   while(true)
+   while(bIsRunning)
    {
-      int Result = GetResultFromPhases(data, phases);
-      if (Result > maxResult)
+      std::set<int> Tmp;
+      for (int i = 0; i < 5; i++)
       {
-         maxResult = Result;
+         Tmp.insert(phases[i]);
       }
-
-      if (swap + 1 == phaseNums)
+      if (Tmp.size() == 5)
       {
-         std::swap(phases[swap], phases[0]);
-      }
-      else
-      {
-         std::swap(phases[swap], phases[swap+1]);
-      }
-      swap++;
-
-      if (swap == phaseNums)
-      {
-         swap = 0;
-      }
-
-      if (phases == originPhases)
-      {
-         originSwap++;
-         if (originSwap == phaseNums - 3)
+         for (int i=0; i<5; i++)
          {
-            break;
-         }  
-         swap = originSwap;
+            std::cout<< phases[i] << " ";
+         }
+         std::cout<< '\n';
+
+         int Result = GetResultFromPhases(data, phases);
+         if (Result > maxResult)
+         {
+            maxResult = Result;
+         }
       }
-   }   
+
+      for (int i = 4; i >= 0; i--)
+      {
+         if (phases[i] == 9)
+         {
+            if (i==0)
+            {
+               bIsRunning = false;
+               break;
+            }
+            phases[i] = 5;
+         }
+         else
+         {
+            phases[i] += 1;
+            break;
+         }
+      }
+   }
 
    std::cout << "Result: " << maxResult << '\n';
-
+   
    return 0;
 }
