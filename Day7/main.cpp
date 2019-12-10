@@ -169,12 +169,6 @@ int main()
       }
       if (Tmp.size() == 5)
       {
-         for (int i=0; i<5; i++)
-         {
-            std::cout<< phases[i] << " ";
-         }
-         std::cout<< '\n';
-
          int Result = GetResultFromPhases(data, phases);
          if (Result > maxResult)
          {
