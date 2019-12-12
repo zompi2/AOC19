@@ -188,7 +188,6 @@ public:
              angle = 360 - angle;
           }
       }
-      angle = roundf(angle * 100) / 100;
    }
 
    void CollectAllAsteroids(std::vector<Asteroid>& a1)
@@ -328,6 +327,13 @@ int main()
       }
    }
 
+int count = 0;
+ for (auto& ray : rays)
+      {
+         count += ray.second.asteroidsOnLine.size();
+      }
+
+      
    bool ShouldEnd = false;
    int i = 1;
    while(ShouldEnd == false)
