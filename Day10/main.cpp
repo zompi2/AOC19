@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -12,10 +14,11 @@
 #include <array>
 #include <cmath>
 #include <math.h>
+#include <iomanip>
 
 const float EPSILON = .0001f;
 
-float AlmostEqual(float a, float b)
+bool AlmostEqual(float a, float b)
 {
    return std::fabs(a-b) <= EPSILON;
 }
@@ -160,7 +163,7 @@ inline float Dot(const Vec2D& v1, const Vec2D& v2)
 
 inline float ToDegrees(float rad)
 {
-   return rad * (180.f / M_PI);
+   return rad * (180.f / (float)M_PI);
 }
 
 class Ray
@@ -199,21 +202,13 @@ public:
 
          if (line.IsOnLine(a))
          {
-            if (line.isVertical)
+            Vec2D v1 = FromTwoPoints(p1, p2);
+            Vec2D v2 = FromTwoPoints(p1, a);
+            if (Dot(v1, v2) > 0)
             {
-               if (IsBetween(a.y, p1.y, p2.y) == false) continue; 
+               int distance = std::abs((int)a.x - (int)p1.x) + std::abs((int)a.y - (int)p1.y);
+               asteroidsOnLine[distance] = &a;
             }
-            else if (line.isHorizontal)
-            {
-               if (IsBetween(a.x, p1.x, p2.x) == false) continue;
-            }
-            else
-            {
-               if (IsBetweenPoints(a, p1, p2) == false) continue;
-            }
-
-            int distance = std::abs(a.x - p1.x) + std::abs(a.y - p1.y);
-            asteroidsOnLine[distance] = &a;
          }
       }
 
@@ -235,6 +230,30 @@ public:
    }
 };
 
+std::string FromFloatWithPrec(float inFloat, int prec)
+{
+   std::stringstream stream;
+   stream << std::fixed << std::setprecision(prec) << inFloat;
+   return stream.str();
+}
+
+class PrecFloat
+{
+public:
+   float f = 0.f;
+   PrecFloat() {}
+   PrecFloat(float inF) : f(inF) {}
+
+   bool operator<(const PrecFloat& other) const
+   {
+      if (AlmostEqual(f, other.f))
+      {
+         return false;
+      }
+      return f < other.f;
+   }
+};
+
 int main() 
 {
    std::ifstream infile("input.txt");   
@@ -251,7 +270,7 @@ int main()
       {
          if (c=='#')
          {
-            asteroids.push_back(Asteroid(x,y));
+            asteroids.push_back(Asteroid((float)x,(float)y));
          }
          x++;
       }
@@ -313,7 +332,7 @@ int main()
       '(' << abd->x << ',' << abd->y << ")= " << abd->detected << '\n';
    
 
-   std::map<float, Ray> rays;
+   std::map<PrecFloat, Ray> rays;
    for (auto& a1 : asteroids)
    {
       if (a1 == *abd) continue;
@@ -327,15 +346,10 @@ int main()
       }
    }
 
-int count = 0;
- for (auto& ray : rays)
-      {
-         count += ray.second.asteroidsOnLine.size();
-      }
-
       
    bool ShouldEnd = false;
    int i = 1;
+   const Asteroid* result = nullptr;
    while(ShouldEnd == false)
    {
       ShouldEnd = true;
@@ -344,16 +358,27 @@ int count = 0;
          const Asteroid* asteroid = ray.second.GetNextAsteroid();
          if (asteroid != nullptr)
          {
-            std::cout << i << ". Vaporized asteroid: (" << asteroid->x << ',' << asteroid->y << ")\n";          
-            if (i%9 == 0)
+            if (i == 200)
             {
-               std::cout << "---\n";
+               result = asteroid;
+               ShouldEnd = true;
+               break;
             }
-            i++;
-            ShouldEnd = false;
+            else
+            {
+               i++;
+               ShouldEnd = false;
+            }
          }
       }
    }
+
+   std::cout << "200th asteroid is: " <<
+      '(' << result->x << ',' << result->y << ")\n";
    
+   int theAnswer = (int)result->x*100+(int)result->y;
+
+   std::cout << "Final result: " << theAnswer << '\n';
+
    return 0;
 }
