@@ -11,6 +11,7 @@
 #include <functional>
 #include <array>
 #include <cmath>
+#include <chrono>
 
 class Vec3D
 {
@@ -78,8 +79,6 @@ public:
 
 int main() 
 {
-   //std::ifstream infile("input.txt");   
-
    std::vector<Moon> moons;
    moons.push_back(Moon(0, Vec3D(-8,-10,0)));
    moons.push_back(Moon(1, Vec3D(5,5,10)));
@@ -89,6 +88,7 @@ int main()
    const long long steps = 4686774924;
    for (long long s=1; s<=steps; s++)
    {
+      //auto start = std::chrono::high_resolution_clock::now();
       for (int i=0; i<4; i++)
       {
          for (int j=i+1; j<4; j++)
@@ -132,6 +132,12 @@ int main()
       {
          moons[i].ApplyVelocity();
       }
+
+      /*
+      auto stop = std::chrono::high_resolution_clock::now(); 
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      std::cout << duration.count() << '\n'; 
+      */
    }
 
    for (int i=0; i<4; i++)
