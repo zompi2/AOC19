@@ -33,57 +33,47 @@ public:
    std::pair<std::string, int> Produces;
 };
 std::vector<Reactor> reactors;
-std::map<std::string, int> spareParts;
+std::map<std::string, int> partsRequired;
 int oreRequired = 0;
 
-void AddSparePart(const std::string& what, int amount)
+bool IsActeptingOreOnly(const std::string& name)
+{
+   for (auto& r : reactors)
+   {
+      if (r.Produces.first == name)
+      {
+         if (r.Requires.size() == 1)
+         {
+            if (r.Requires.find("ORE") != r.Requires.end())
+            {
+               return true;
+            }
+         }
+      }
+   }
+  
+   return false;
+}
+
+void AddOrInrease(std::map<std::string, int>& map, const std::string& what, int amount)
 {
    if (amount > 0)
    {
-      if (spareParts.find(what) != spareParts.end())
+      if (map.find(what) != map.end())
       {
-         spareParts[what] += amount;
+         map[what] += amount;
       }
       else
       {
-         spareParts[what] = amount;
+         map[what] = amount;
       }
    }
-}
-
-void Produce(const std::string& what, int amount)
-{
-   if (what == "ORE")
-   {
-      oreRequired += amount;
-      return;
-   }
-
-   for (auto& r : reactors)
-   {
-      if (r.Produces.first == what)
-      {
-         for (auto& req : r.Requires)
-         {
-            int needToProduceRatio = (int)std::ceil((float)amount / r.Produces.second);
-            int requires = req.second * needToProduceRatio;
-            AddSparePart(what, r.Produces.second - amount);
-            Produce(req.first, requires);
-         }
-      }
-   }  
 }
 
 int main() 
 {
    std::ifstream infile("input.txt");   
    std::string s;
-
-   int expect = 0;
-
-
-   Reactor* reactorProducingFuel = nullptr;
-   std::vector<Reactor*> reactorsAcceptingOre;
 
    // PARSE INPUT TO REACTORS
    while(std::getline(infile, s))
@@ -108,39 +98,59 @@ int main()
       currentReactor->Produces.second = std::atoi(outs[0].c_str());
    }
 
-   for (auto& r : reactors)
+   partsRequired["FUEL"] = 1;
+
+   bool bPurePartsOnly = false;
+   while(bPurePartsOnly == false)
    {
-      if (r.Produces.first == "FUEL")
+      bPurePartsOnly = true;
+      std::map<std::string, int> subParts;
+      for (auto& part : partsRequired)
       {
-         reactorProducingFuel = &r;
-      }
-      else
-      {
-         for (auto& req : r.Requires)
+         if (IsActeptingOreOnly(part.first) == false)
          {
-            if (req.first == "ORE")
+            if (part.second > 0)
             {
-               reactorsAcceptingOre.push_back(&r);
+               bPurePartsOnly = false;
+               for (auto& r : reactors)
+               {
+                  if (r.Produces.first == part.first)
+                  {
+                     int c = (int)std::ceil((float)part.second / r.Produces.second);
+                     for (auto& req : r.Requires)
+                     {
+                        AddOrInrease(subParts, req.first, req.second * c);
+                     }
+
+                     part.second -= r.Produces.second * c;      
+                     break;
+                  }
+               }  
             }
          }
       }
+
+      for (auto& sr : subParts)
+      {
+         AddOrInrease(partsRequired, sr.first, sr.second);
+      }
    }
 
-   Produce("FUEL", 1);
-
-   for (auto& spare : spareParts)
+   oreRequired = 0;
+   for (auto& part : partsRequired)
    {
-      for (auto& r : reactors)
+      for (auto&r : reactors)
       {
-         if (r.Produces.first == spare.first)
+         if (part.first == r.Produces.first)
          {
-            int producesCount = spare.second / r.Produces.second;
-            oreRequired -= producesCount*r.Produces.second;
+            int c = (int)std::ceil((float)part.second / r.Produces.second);
+            int x = c * r.Requires["ORE"];
+            oreRequired += c * r.Requires["ORE"];
             break;
          }
       }
    }
-
+   
    std::cout << "Ore used: " << oreRequired << '\n';
 
    return 0;
